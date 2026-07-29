@@ -47,7 +47,7 @@ PHP tooling:
 
 Flutter and Android tooling:
 
-- Flutter 3.44.5
+- Flutter 3.44.8
 - Dart 3.12.2
 - Java 21
 - Android SDK 36.1
