@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\PartnerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
@@ -8,3 +9,5 @@ Route::get('/health', function () {
         'service' => 'agrilink-api',
     ]);
 });
+
+Route::apiResource('partners', PartnerController::class);
