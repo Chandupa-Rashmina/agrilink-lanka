@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/marketplace_providers.dart';
+import 'edit_listing_screen.dart';
 
 class MyListingsScreen extends ConsumerWidget {
   const MyListingsScreen({super.key});
@@ -44,7 +45,13 @@ class MyListingsScreen extends ConsumerWidget {
                   ),
                   trailing: PopupMenuButton<String>(
                     onSelected: (action) async {
-                      if (action == 'sold') {
+                      if (action == 'edit') {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => EditListingScreen(listing: listing),
+                          ),
+                        );
+                      } else if (action == 'sold') {
                         await ref
                             .read(marketplaceServiceProvider)
                             .markSold(listing.id);
@@ -58,6 +65,7 @@ class MyListingsScreen extends ConsumerWidget {
                       ref.invalidate(marketplaceListingsProvider);
                     },
                     itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Edit')),
                       PopupMenuItem(value: 'sold', child: Text('Mark sold')),
                       PopupMenuItem(value: 'delete', child: Text('Delete')),
                     ],

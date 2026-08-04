@@ -46,8 +46,7 @@ class InquiryController extends Controller
                 ->where(function ($query) use ($request): void {
                     $query
                         ->where('buyer_id', $request->user()->id)
-                        ->orWhereHas('listing', fn ($listing) =>
-                            $listing->where('user_id', $request->user()->id));
+                        ->orWhereHas('listing', fn ($listing) => $listing->where('user_id', $request->user()->id));
                 })
                 ->latest()
                 ->paginate(30),

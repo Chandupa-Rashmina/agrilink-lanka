@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/token_storage.dart';
+import 'models/app_user.dart';
 
 class AuthService {
   const AuthService({required this._apiClient, required this._tokenStorage});
@@ -9,7 +10,10 @@ class AuthService {
   final ApiClient _apiClient;
   final TokenStorage _tokenStorage;
 
-  Future<void> login({required String email, required String password}) async {
+  Future<AppUser> login({
+    required String email,
+    required String password,
+  }) async {
     final response = await _apiClient.dio.post<Map<String, dynamic>>(
       '/login',
       data: {
@@ -19,19 +23,66 @@ class AuthService {
       },
     );
 
+    return _saveSession(response.data);
+  }
+
+  Future<AppUser> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String district,
+    required String password,
+  }) async {
+    final response = await _apiClient.dio.post<Map<String, dynamic>>(
+      '/register',
+      data: {
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'district': district,
+        'password': password,
+        'password_confirmation': password,
+        'device_name': 'agrilink-android',
+      },
+    );
+
+    return _saveSession(response.data);
+  }
+
+  Future<AppUser> fetchProfile() async {
+    final response = await _apiClient.dio.get<Map<String, dynamic>>('/me');
     final data = response.data?['data'];
 
-    if (data is! Map<String, dynamic>) {
-      throw const FormatException('Invalid login response.');
+    if (data is! Map) {
+      throw const FormatException('Invalid profile response.');
     }
 
-    final token = data['token'];
+    return AppUser.fromJson(Map<String, dynamic>.from(data));
+  }
 
-    if (token is! String || token.isEmpty) {
-      throw const FormatException('Authentication token was not returned.');
+  Future<AppUser> updateProfile({
+    required String name,
+    required String email,
+    required String phone,
+    required String district,
+  }) async {
+    final response = await _apiClient.dio.put<Map<String, dynamic>>(
+      '/profile',
+      data: {
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'district': district,
+      },
+    );
+
+    final data = response.data?['data'];
+
+    if (data is! Map) {
+      throw const FormatException('Invalid profile response.');
     }
 
-    await _tokenStorage.saveToken(token);
+    return AppUser.fromJson(Map<String, dynamic>.from(data));
   }
 
   Future<void> logout() async {
@@ -46,7 +97,26 @@ class AuthService {
 
   Future<bool> hasToken() async {
     final token = await _tokenStorage.readToken();
-
     return token != null && token.isNotEmpty;
+  }
+
+  Future<AppUser> _saveSession(Map<String, dynamic>? responseData) async {
+    final data = responseData?['data'];
+
+    if (data is! Map) {
+      throw const FormatException('Invalid authentication response.');
+    }
+
+    final normalized = Map<String, dynamic>.from(data);
+    final token = normalized['token'];
+    final user = normalized['user'];
+
+    if (token is! String || token.isEmpty || user is! Map) {
+      throw const FormatException('Authentication data was not returned.');
+    }
+
+    await _tokenStorage.saveToken(token);
+
+    return AppUser.fromJson(Map<String, dynamic>.from(user));
   }
 }

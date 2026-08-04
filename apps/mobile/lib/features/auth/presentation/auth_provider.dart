@@ -2,91 +2,136 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../data/auth_service.dart';
+import '../data/models/app_user.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider(this._authService);
 
   final AuthService _authService;
 
+  bool _isLoading = false;
   bool _isAuthenticated = false;
-  bool _isLoading = true;
   String? _errorMessage;
+  AppUser? _user;
 
-  bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
+  bool get isAuthenticated => _isAuthenticated;
   String? get errorMessage => _errorMessage;
+  AppUser? get user => _user;
 
   Future<void> initialize() async {
-    _isAuthenticated = await _authService.hasToken();
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<bool> login({required String email, required String password}) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+    _setLoading(true);
 
     try {
-      await _authService.login(email: email, password: password);
+      _isAuthenticated = await _authService.hasToken();
 
-      _isAuthenticated = true;
+      if (_isAuthenticated) {
+        _user = await _authService.fetchProfile();
+      }
+    } catch (_) {
+      _isAuthenticated = false;
+      _user = null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> login({required String email, required String password}) async {
+    await _runAuthAction(
+      () => _authService.login(email: email, password: password),
+    );
+  }
+
+  Future<void> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String district,
+    required String password,
+  }) async {
+    await _runAuthAction(
+      () => _authService.register(
+        name: name,
+        email: email,
+        phone: phone,
+        district: district,
+        password: password,
+      ),
+    );
+  }
+
+  Future<bool> updateProfile({
+    required String name,
+    required String email,
+    required String phone,
+    required String district,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      _user = await _authService.updateProfile(
+        name: name,
+        email: email,
+        phone: phone,
+        district: district,
+      );
       return true;
     } on DioException catch (error) {
-      _errorMessage = _extractMessage(error);
-      return false;
-    } on FormatException catch (error) {
-      _errorMessage = error.message;
+      _errorMessage = _message(error);
       return false;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
   Future<void> logout() async {
-    _isLoading = true;
-    notifyListeners();
+    _setLoading(true);
 
-    await _authService.logout();
-
-    _isAuthenticated = false;
-    _isLoading = false;
-    notifyListeners();
+    try {
+      await _authService.logout();
+    } finally {
+      _isAuthenticated = false;
+      _user = null;
+      _errorMessage = null;
+      _setLoading(false);
+    }
   }
 
   void expireSession() {
-    if (!_isAuthenticated && !_isLoading) {
-      return;
-    }
-
     _isAuthenticated = false;
-    _isLoading = false;
+    _user = null;
     _errorMessage = 'Your session expired. Please sign in again.';
     notifyListeners();
   }
 
-  String _extractMessage(DioException error) {
-    final responseData = error.response?.data;
+  Future<void> _runAuthAction(Future<AppUser> Function() action) async {
+    _setLoading(true);
+    _errorMessage = null;
 
-    if (responseData is Map<String, dynamic>) {
-      final message = responseData['message'];
+    try {
+      _user = await action();
+      _isAuthenticated = true;
+    } on DioException catch (error) {
+      _errorMessage = _message(error);
+      _isAuthenticated = false;
+    } finally {
+      _setLoading(false);
+    }
+  }
 
-      if (message is String && message.isNotEmpty) {
-        return message;
-      }
+  String _message(DioException error) {
+    final data = error.response?.data;
 
-      final errors = responseData['errors'];
-
-      if (errors is Map<String, dynamic>) {
-        final emailErrors = errors['email'];
-
-        if (emailErrors is List && emailErrors.isNotEmpty) {
-          return emailErrors.first.toString();
-        }
-      }
+    if (data is Map && data['message'] is String) {
+      return data['message'] as String;
     }
 
-    return 'Unable to connect to the server.';
+    return 'Unable to connect to AgriLink Lanka.';
+  }
+
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider;
 
 import '../../../auth/presentation/auth_provider.dart';
+import '../../../auth/presentation/profile_screen.dart';
 import 'create_listing_screen.dart';
 import 'favorites_screen.dart';
 import 'inquiries_screen.dart';
@@ -46,7 +47,11 @@ class _MarketplaceShellState extends State<MarketplaceShell> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'logout') {
+              if (value == 'profile') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+              } else if (value == 'logout') {
                 context.read<AuthProvider>().logout();
               }
             },

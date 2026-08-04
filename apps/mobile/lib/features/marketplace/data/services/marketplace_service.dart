@@ -112,6 +112,36 @@ class MarketplaceService {
     return _parseListing(response.data);
   }
 
+  Future<MarketplaceListing> updateListing({
+    required int listingId,
+    required int categoryId,
+    required String title,
+    required double quantity,
+    required String unit,
+    required double price,
+    required String district,
+    required bool isNegotiable,
+    String? description,
+    String? location,
+  }) async {
+    final response = await _apiClient.dio.patch<dynamic>(
+      '/listings/$listingId',
+      data: {
+        'category_id': categoryId,
+        'title': title.trim(),
+        'description': _nullable(description),
+        'quantity': quantity,
+        'unit': unit.trim(),
+        'price': price,
+        'district': district.trim(),
+        'location': _nullable(location),
+        'is_negotiable': isNegotiable,
+      },
+    );
+
+    return _parseListing(response.data);
+  }
+
   Future<void> sendInquiry({
     required int listingId,
     required String message,
