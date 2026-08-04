@@ -4,11 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/storage/token_storage.dart';
 
 class AuthService {
-  const AuthService({
-    required ApiClient apiClient,
-    required TokenStorage tokenStorage,
-  }) : _apiClient = apiClient,
-       _tokenStorage = tokenStorage;
+  const AuthService({required this._apiClient, required this._tokenStorage});
 
   final ApiClient _apiClient;
   final TokenStorage _tokenStorage;

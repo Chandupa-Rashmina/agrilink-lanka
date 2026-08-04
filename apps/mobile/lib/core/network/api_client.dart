@@ -4,9 +4,8 @@ import '../config/api_config.dart';
 import '../storage/token_storage.dart';
 
 class ApiClient {
-  ApiClient({required TokenStorage tokenStorage})
-    : _tokenStorage = tokenStorage,
-      dio = Dio(
+  ApiClient({required this._tokenStorage})
+    : dio = Dio(
         BaseOptions(
           baseUrl: ApiConfig.baseUrl,
           connectTimeout: const Duration(seconds: 10),
