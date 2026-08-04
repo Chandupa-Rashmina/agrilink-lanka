@@ -43,6 +43,10 @@ final favoriteListingsProvider = FutureProvider<List<MarketplaceListing>>((
   return ref.watch(marketplaceServiceProvider).fetchFavorites();
 });
 
-final inquiriesProvider = FutureProvider<List<MarketplaceInquiry>>((ref) {
-  return ref.watch(marketplaceServiceProvider).fetchInquiries();
+final buyerInquiriesProvider = FutureProvider<List<MarketplaceInquiry>>((ref) {
+  return ref.watch(marketplaceServiceProvider).fetchInquiries(role: 'buyer');
+});
+
+final sellerInquiriesProvider = FutureProvider<List<MarketplaceInquiry>>((ref) {
+  return ref.watch(marketplaceServiceProvider).fetchInquiries(role: 'seller');
 });

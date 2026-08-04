@@ -51,8 +51,13 @@ class MarketplaceService {
     return _parseListings(response.data);
   }
 
-  Future<List<MarketplaceInquiry>> fetchInquiries() async {
-    final response = await _apiClient.dio.get<dynamic>('/inquiries');
+  Future<List<MarketplaceInquiry>> fetchInquiries({
+    required String role,
+  }) async {
+    final response = await _apiClient.dio.get<dynamic>(
+      '/inquiries',
+      queryParameters: {'role': role},
+    );
     final root = response.data;
 
     if (root is! Map || root['data'] is! Map) {

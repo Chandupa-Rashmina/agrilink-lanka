@@ -84,7 +84,8 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       await ref
           .read(marketplaceServiceProvider)
           .sendInquiry(listingId: widget.listing.id, message: message);
-      ref.invalidate(inquiriesProvider);
+      ref.invalidate(buyerInquiriesProvider);
+      ref.invalidate(sellerInquiriesProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(
