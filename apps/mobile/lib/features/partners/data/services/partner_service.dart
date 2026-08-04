@@ -100,6 +100,10 @@ class PartnerService {
     );
   }
 
+  Future<void> deletePartner(int id) async {
+    await _apiClient.dio.delete<void>('/partners/$id');
+  }
+
   Partner _partnerFromResponse(
     dynamic responseData, {
     required String errorMessage,

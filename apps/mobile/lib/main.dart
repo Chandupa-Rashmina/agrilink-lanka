@@ -28,6 +28,8 @@ Future<void> main() async {
   final partnerService = PartnerService(apiClient);
   final authProvider = AuthProvider(authService);
 
+  apiClient.onUnauthorized = authProvider.expireSession;
+
   await authProvider.initialize();
 
   runApp(

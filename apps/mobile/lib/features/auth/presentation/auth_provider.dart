@@ -55,6 +55,17 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void expireSession() {
+    if (!_isAuthenticated && !_isLoading) {
+      return;
+    }
+
+    _isAuthenticated = false;
+    _isLoading = false;
+    _errorMessage = 'Your session expired. Please sign in again.';
+    notifyListeners();
+  }
+
   String _extractMessage(DioException error) {
     final responseData = error.response?.data;
 

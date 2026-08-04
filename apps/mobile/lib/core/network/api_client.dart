@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import '../config/api_config.dart';
@@ -24,10 +26,40 @@ class ApiClient {
 
           handler.next(options);
         },
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401 &&
+              !_isPublicAuthenticationRequest(error.requestOptions.path)) {
+            await _expireSession();
+          }
+
+          handler.next(error);
+        },
       ),
     );
   }
 
   final TokenStorage _tokenStorage;
   final Dio dio;
+
+  FutureOr<void> Function()? onUnauthorized;
+  bool _isExpiringSession = false;
+
+  bool _isPublicAuthenticationRequest(String path) {
+    return path.endsWith('/login');
+  }
+
+  Future<void> _expireSession() async {
+    if (_isExpiringSession) {
+      return;
+    }
+
+    _isExpiringSession = true;
+
+    try {
+      await _tokenStorage.deleteToken();
+      await onUnauthorized?.call();
+    } finally {
+      _isExpiringSession = false;
+    }
+  }
 }
