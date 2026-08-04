@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -30,4 +32,15 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function listings(): HasMany
+    {
+        return $this->hasMany(Listing::class);
+    }
+
+    public function favoriteListings(): BelongsToMany
+    {
+        return $this->belongsToMany(Listing::class, 'favorites')->withTimestamps();
+    }
+
 }
