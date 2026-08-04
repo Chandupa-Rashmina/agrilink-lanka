@@ -5,6 +5,7 @@ import 'package:provider/provider.dart' as provider;
 import '../../../auth/presentation/auth_provider.dart';
 import '../providers/partner_provider.dart';
 import 'partner_create_screen.dart';
+import 'partner_detail_screen.dart';
 
 class PartnerListScreen extends ConsumerWidget {
   const PartnerListScreen({super.key});
@@ -86,6 +87,13 @@ class PartnerListScreen extends ConsumerWidget {
 
                 return Card(
                   child: ListTile(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PartnerDetailScreen(partner: partner),
+                        ),
+                      );
+                    },
                     leading: CircleAvatar(
                       child: Icon(
                         partner.type == 'farmer'

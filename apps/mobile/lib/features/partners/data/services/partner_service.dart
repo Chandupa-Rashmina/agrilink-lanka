@@ -35,6 +35,15 @@ class PartnerService {
     }).toList();
   }
 
+  Future<Partner> fetchPartner(int id) async {
+    final response = await _apiClient.dio.get<dynamic>('/partners/$id');
+
+    return _partnerFromResponse(
+      response.data,
+      errorMessage: 'Invalid partner-detail response.',
+    );
+  }
+
   Future<Partner> createPartner({
     required String type,
     required String name,
@@ -45,26 +54,83 @@ class PartnerService {
   }) async {
     final response = await _apiClient.dio.post<dynamic>(
       '/partners',
-      data: {
-        'type': type,
-        'name': name,
-        'phone': _nullable(phone),
-        'email': _nullable(email),
-        'address': _nullable(address),
-        'district': _nullable(district),
-        'is_active': true,
-      },
+      data: _payload(
+        type: type,
+        name: name,
+        phone: phone,
+        email: email,
+        address: address,
+        district: district,
+        isActive: true,
+      ),
     );
 
-    final responseData = response.data;
+    return _partnerFromResponse(
+      response.data,
+      errorMessage: 'Invalid create-partner response.',
+    );
+  }
 
+  Future<Partner> updatePartner({
+    required int id,
+    required String type,
+    required String name,
+    required bool isActive,
+    String? phone,
+    String? email,
+    String? address,
+    String? district,
+  }) async {
+    final response = await _apiClient.dio.put<dynamic>(
+      '/partners/$id',
+      data: _payload(
+        type: type,
+        name: name,
+        phone: phone,
+        email: email,
+        address: address,
+        district: district,
+        isActive: isActive,
+      ),
+    );
+
+    return _partnerFromResponse(
+      response.data,
+      errorMessage: 'Invalid update-partner response.',
+    );
+  }
+
+  Partner _partnerFromResponse(
+    dynamic responseData, {
+    required String errorMessage,
+  }) {
     if (responseData is! Map || responseData['data'] is! Map) {
-      throw const FormatException('Invalid create-partner response.');
+      throw FormatException(errorMessage);
     }
 
     return Partner.fromJson(
       Map<String, dynamic>.from(responseData['data'] as Map),
     );
+  }
+
+  Map<String, dynamic> _payload({
+    required String type,
+    required String name,
+    required bool isActive,
+    String? phone,
+    String? email,
+    String? address,
+    String? district,
+  }) {
+    return {
+      'type': type,
+      'name': name.trim(),
+      'phone': _nullable(phone),
+      'email': _nullable(email),
+      'address': _nullable(address),
+      'district': _nullable(district),
+      'is_active': isActive,
+    };
   }
 
   String? _nullable(String? value) {
