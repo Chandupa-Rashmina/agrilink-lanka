@@ -22,3 +22,12 @@ build/
 
 # Local release binaries
 releases/*.apk
+
+# Production secrets and backups
+.env.production
+backups/
+
+# Keep production templates and operational scripts tracked
+!.env.production.example
+!ops/backups/
+!ops/backups/backup_production.sh
