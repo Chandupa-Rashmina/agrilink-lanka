@@ -9,8 +9,10 @@ import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/partners/data/services/partner_service.dart';
+import 'features/marketplace/data/services/marketplace_service.dart';
 import 'features/partners/presentation/providers/partner_provider.dart';
-import 'features/partners/presentation/screens/partner_list_screen.dart';
+import 'features/marketplace/presentation/providers/marketplace_providers.dart';
+import 'features/marketplace/presentation/screens/marketplace_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +28,7 @@ Future<void> main() async {
   );
 
   final partnerService = PartnerService(apiClient);
+  final marketplaceService = MarketplaceService(apiClient);
   final authProvider = AuthProvider(authService);
 
   apiClient.onUnauthorized = authProvider.expireSession;
@@ -34,7 +37,10 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      overrides: [partnerServiceProvider.overrideWithValue(partnerService)],
+      overrides: [
+        partnerServiceProvider.overrideWithValue(partnerService),
+        marketplaceServiceProvider.overrideWithValue(marketplaceService),
+      ],
       child: provider.MultiProvider(
         providers: [
           provider.Provider<ApiClient>.value(value: apiClient),
@@ -69,7 +75,7 @@ class AgriLinkApp extends StatelessWidget {
           }
 
           if (authProvider.isAuthenticated) {
-            return const PartnerListScreen();
+            return const MarketplaceShell();
           }
 
           return const LoginScreen();
