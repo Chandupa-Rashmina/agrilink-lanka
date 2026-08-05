@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\InquiryController;
 use App\Http\Controllers\Api\ListingController;
+use App\Http\Controllers\Api\MarketplaceDashboardController;
 use App\Http\Controllers\Api\PartnerController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,10 +30,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::apiResource('partners', PartnerController::class);
 
+    Route::get('/marketplace-dashboard', MarketplaceDashboardController::class);
     Route::get('/my-listings', [ListingController::class, 'mine']);
     Route::post('/listings', [ListingController::class, 'store']);
     Route::match(['put', 'patch'], '/listings/{listing}', [ListingController::class, 'update']);
     Route::delete('/listings/{listing}', [ListingController::class, 'destroy']);
+    Route::patch('/listings/{listing}/status', [ListingController::class, 'updateStatus']);
     Route::post('/listings/{listing}/sold', [ListingController::class, 'markSold']);
 
     Route::post('/listings/{listing}/inquiries', [InquiryController::class, 'store']);

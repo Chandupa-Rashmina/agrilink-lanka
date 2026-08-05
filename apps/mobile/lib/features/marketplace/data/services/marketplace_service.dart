@@ -4,6 +4,7 @@ import '../../../../core/network/api_client.dart';
 import '../models/category.dart';
 import '../models/inquiry.dart';
 import '../models/listing.dart';
+import '../models/marketplace_dashboard.dart';
 
 class MarketplaceService {
   const MarketplaceService(this._apiClient);
@@ -27,6 +28,10 @@ class MarketplaceService {
     String? search,
     int? categoryId,
     String? district,
+    double? minPrice,
+    double? maxPrice,
+    bool? negotiable,
+    String sort = 'newest',
   }) async {
     final response = await _apiClient.dio.get<dynamic>(
       '/listings',
@@ -35,10 +40,41 @@ class MarketplaceService {
         'category_id': ?categoryId,
         if (district != null && district.trim().isNotEmpty)
           'district': district.trim(),
+        'min_price': ?minPrice,
+        'max_price': ?maxPrice,
+        'negotiable': ?negotiable,
+        'sort': sort,
       },
     );
 
     return _parseListings(response.data);
+  }
+
+  Future<MarketplaceDashboard> fetchDashboard() async {
+    final response = await _apiClient.dio.get<dynamic>(
+      '/marketplace-dashboard',
+    );
+    final root = response.data;
+
+    if (root is! Map || root['data'] is! Map) {
+      throw const FormatException('Invalid marketplace dashboard response.');
+    }
+
+    return MarketplaceDashboard.fromJson(
+      Map<String, dynamic>.from(root['data'] as Map),
+    );
+  }
+
+  Future<MarketplaceListing> updateListingStatus({
+    required int listingId,
+    required String status,
+  }) async {
+    final response = await _apiClient.dio.patch<dynamic>(
+      '/listings/$listingId/status',
+      data: {'status': status},
+    );
+
+    return _parseListing(response.data);
   }
 
   Future<List<MarketplaceListing>> fetchMyListings() async {
