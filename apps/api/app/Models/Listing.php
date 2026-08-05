@@ -45,6 +45,14 @@ class Listing extends Model
 
     public function getImageUrlAttribute(): ?string
     {
+        $firstImage = $this->relationLoaded('images')
+            ? $this->images->first()
+            : $this->images()->first();
+
+        if ($firstImage) {
+            return $firstImage->url;
+        }
+
         return $this->image_path
             ? Storage::disk('public')->url($this->image_path)
             : null;
@@ -58,6 +66,13 @@ class Listing extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ListingImage::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 
     public function inquiries(): HasMany

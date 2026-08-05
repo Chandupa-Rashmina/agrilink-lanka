@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ListingResource;
 use App\Models\Listing;
+use App\Models\ListingImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -30,7 +32,7 @@ class ListingController extends Controller
         ]);
 
         $query = Listing::query()
-            ->with(['category', 'seller'])
+            ->with(['category', 'seller', 'images'])
             ->visible()
             ->when(
                 filled($filters['search'] ?? null),
@@ -103,7 +105,7 @@ class ListingController extends Controller
         abort_unless($listing->status === 'active', 404);
 
         return new ListingResource(
-            $listing->load(['category', 'seller'])
+            $listing->load(['category', 'seller', 'images'])
         );
     }
 
@@ -113,15 +115,28 @@ class ListingController extends Controller
         $data['user_id'] = $request->user()->id;
         $data['status'] = 'active';
 
-        if ($request->hasFile('image')) {
-            $data['image_path'] = $request->file('image')
-                ->store('listings', 'public');
-        }
+        $legacyImage = $request->file('image');
+        unset($data['image'], $data['images']);
 
-        $listing = Listing::create($data);
+        $listing = DB::transaction(function () use (
+            $request,
+            $data,
+            $legacyImage
+        ): Listing {
+            $listing = Listing::create($data);
+
+            $files = $request->file('images', []);
+            if ($legacyImage) {
+                array_unshift($files, $legacyImage);
+            }
+
+            $this->storeImages($listing, $files);
+
+            return $listing;
+        });
 
         return new ListingResource(
-            $listing->load(['category', 'seller'])
+            $listing->load(['category', 'seller', 'images'])
         );
     }
 
@@ -131,19 +146,27 @@ class ListingController extends Controller
 
         $data = $this->validated($request, true);
 
-        if ($request->hasFile('image')) {
-            if ($listing->image_path) {
-                Storage::disk('public')->delete($listing->image_path);
+        $legacyImage = $request->file('image');
+        unset($data['image'], $data['images']);
+
+        DB::transaction(function () use (
+            $request,
+            $listing,
+            $data,
+            $legacyImage
+        ): void {
+            $listing->update($data);
+
+            $files = $request->file('images', []);
+            if ($legacyImage) {
+                array_unshift($files, $legacyImage);
             }
 
-            $data['image_path'] = $request->file('image')
-                ->store('listings', 'public');
-        }
-
-        $listing->update($data);
+            $this->storeImages($listing, $files);
+        });
 
         return new ListingResource(
-            $listing->fresh()->load(['category', 'seller'])
+            $listing->fresh()->load(['category', 'seller', 'images'])
         );
     }
 
@@ -163,7 +186,7 @@ class ListingController extends Controller
         $listing->update(['status' => $data['status']]);
 
         return new ListingResource(
-            $listing->fresh()->load(['category', 'seller'])
+            $listing->fresh()->load(['category', 'seller', 'images'])
         );
     }
 
@@ -189,9 +212,59 @@ class ListingController extends Controller
         ]);
     }
 
+    public function deleteImage(
+        Request $request,
+        Listing $listing,
+        ListingImage $image
+    ): Response {
+        $this->authorizeOwner($request, $listing);
+        abort_unless($image->listing_id === $listing->id, 404);
+
+        DB::transaction(function () use ($listing, $image): void {
+            Storage::disk('public')->delete($image->path);
+            $image->delete();
+            $this->normalizeImageOrder($listing);
+        });
+
+        return response()->noContent();
+    }
+
+    public function setCoverImage(
+        Request $request,
+        Listing $listing,
+        ListingImage $image
+    ): ListingResource {
+        $this->authorizeOwner($request, $listing);
+        abort_unless($image->listing_id === $listing->id, 404);
+
+        DB::transaction(function () use ($listing, $image): void {
+            $ordered = $listing->images()
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+
+            $position = 1;
+            foreach ($ordered as $item) {
+                $item->update([
+                    'sort_order' => $item->is($image) ? 0 : $position++,
+                ]);
+            }
+        });
+
+        return new ListingResource(
+            $listing->fresh()->load(['category', 'seller', 'images'])
+        );
+    }
+
     public function destroy(Request $request, Listing $listing): Response
     {
         $this->authorizeOwner($request, $listing);
+
+        $listing->loadMissing('images');
+
+        Storage::disk('public')->delete(
+            $listing->images->pluck('path')->all()
+        );
 
         if ($listing->image_path) {
             Storage::disk('public')->delete($listing->image_path);
@@ -213,7 +286,7 @@ class ListingController extends Controller
 
         return ListingResource::collection(
             Listing::query()
-                ->with(['category', 'seller'])
+                ->with(['category', 'seller', 'images'])
                 ->where('user_id', $request->user()->id)
                 ->when(
                     isset($filters['status']),
@@ -234,6 +307,40 @@ class ListingController extends Controller
         $request->merge(['status' => 'sold']);
 
         return $this->updateStatus($request, $listing);
+    }
+
+    private function storeImages(Listing $listing, array $files): void
+    {
+        if ($files === []) {
+            return;
+        }
+
+        $existingCount = $listing->images()->count();
+        abort_if(
+            $existingCount + count($files) > 5,
+            422,
+            'A listing can contain at most 5 images.'
+        );
+
+        foreach ($files as $offset => $file) {
+            $listing->images()->create([
+                'path' => $file->store('listings', 'public'),
+                'sort_order' => $existingCount + $offset,
+            ]);
+        }
+    }
+
+    private function normalizeImageOrder(Listing $listing): void
+    {
+        $listing->images()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->each(
+                fn (ListingImage $image, int $index) => $image->update([
+                    'sort_order' => $index,
+                ])
+            );
     }
 
     private function authorizeOwner(
@@ -286,6 +393,8 @@ class ListingController extends Controller
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'available_date' => ['nullable', 'date'],
             'image' => ['nullable', 'image', 'max:5120'],
+            'images' => ['nullable', 'array', 'max:5'],
+            'images.*' => ['image', 'max:5120'],
         ]);
     }
 }

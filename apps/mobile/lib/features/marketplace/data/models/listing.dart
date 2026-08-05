@@ -1,3 +1,5 @@
+import 'listing_image.dart';
+
 class MarketplaceListing {
   const MarketplaceListing({
     required this.id,
@@ -12,6 +14,7 @@ class MarketplaceListing {
     required this.categoryName,
     required this.sellerId,
     required this.sellerName,
+    required this.images,
     this.description,
     this.location,
     this.latitude,
@@ -47,6 +50,14 @@ class MarketplaceListing {
           : double.tryParse(value.toString());
     }
 
+    final images = (json['images'] as List? ?? const [])
+        .map(
+          (item) => MarketplaceListingImage.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList();
+
     return MarketplaceListing(
       id: (json['id'] as num).toInt(),
       title: json['title'] as String? ?? '',
@@ -65,6 +76,7 @@ class MarketplaceListing {
       categoryName: category['name'] as String? ?? 'Uncategorized',
       sellerId: (seller['id'] as num?)?.toInt() ?? 0,
       sellerName: seller['name'] as String? ?? 'Unknown seller',
+      images: images,
       sellerDistrict: seller['district'] as String?,
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
     );
@@ -87,8 +99,17 @@ class MarketplaceListing {
   final String categoryName;
   final int sellerId;
   final String sellerName;
+  final List<MarketplaceListingImage> images;
   final String? sellerDistrict;
   final DateTime? createdAt;
 
   bool get hasCoordinates => latitude != null && longitude != null;
+
+  List<String> get imageUrls {
+    if (images.isNotEmpty) {
+      return images.map((image) => image.url).toList();
+    }
+
+    return imageUrl == null ? const [] : [imageUrl!];
+  }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,7 +32,7 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
   int? _categoryId;
   bool _negotiable = false;
   bool _saving = false;
-  XFile? _image;
+  final List<XFile> _images = [];
   LatLng? _coordinates;
 
   @override
@@ -45,15 +47,20 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final image = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+  Future<void> _pickImages() async {
+    final remaining = 5 - _images.length;
+    if (remaining <= 0) {
+      return;
+    }
+
+    final selected = await ImagePicker().pickMultiImage(
       imageQuality: 75,
       maxWidth: 1600,
+      limit: remaining,
     );
 
-    if (image != null) {
-      setState(() => _image = image);
+    if (selected.isNotEmpty && mounted) {
+      setState(() => _images.addAll(selected.take(remaining)));
     }
   }
 
@@ -94,7 +101,7 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
             latitude: _coordinates?.latitude,
             longitude: _coordinates?.longitude,
             isNegotiable: _negotiable,
-            imagePath: _image?.path,
+            imagePaths: _images.map((image) => image.path).toList(),
           );
 
       ref.invalidate(marketplaceListingsProvider);
@@ -112,7 +119,7 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
       setState(() {
         _categoryId = null;
         _negotiable = false;
-        _image = null;
+        _images.clear();
         _coordinates = null;
       });
 
@@ -243,10 +250,51 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: _pickImage,
+            onPressed: _images.length >= 5 ? null : _pickImages,
             icon: const Icon(Icons.photo_library_outlined),
-            label: Text(_image == null ? 'Choose photo' : 'Photo selected'),
+            label: Text(
+              _images.isEmpty
+                  ? 'Choose up to 5 photos'
+                  : '${_images.length}/5 photos selected',
+            ),
           ),
+          if (_images.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 92,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _images.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          File(_images[index].path),
+                          width: 92,
+                          height: 92,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: IconButton.filled(
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () {
+                            setState(() => _images.removeAt(index));
+                          },
+                          icon: const Icon(Icons.close, size: 16),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: _saving ? null : _save,

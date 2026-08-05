@@ -37,6 +37,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::match(['put', 'patch'], '/listings/{listing}', [ListingController::class, 'update']);
     Route::delete('/listings/{listing}', [ListingController::class, 'destroy']);
     Route::patch('/listings/{listing}/status', [ListingController::class, 'updateStatus']);
+    Route::delete(
+        '/listings/{listing}/images/{image}',
+        [ListingController::class, 'deleteImage']
+    );
+    Route::patch(
+        '/listings/{listing}/images/{image}/cover',
+        [ListingController::class, 'setCoverImage']
+    );
     Route::post('/listings/{listing}/sold', [ListingController::class, 'markSold']);
 
     Route::post('/listings/{listing}/inquiries', [InquiryController::class, 'store']);

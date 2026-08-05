@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../data/models/listing.dart';
@@ -28,6 +31,8 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
   late bool _negotiable;
   bool _saving = false;
   LatLng? _coordinates;
+  final List<XFile> _newImages = [];
+  late var _existingImages = [...widget.listing.images];
 
   @override
   void initState() {
@@ -57,6 +62,45 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
     _district.dispose();
     _location.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    final remaining = 5 - _existingImages.length - _newImages.length;
+    if (remaining <= 0) {
+      return;
+    }
+
+    final selected = await ImagePicker().pickMultiImage(
+      imageQuality: 75,
+      maxWidth: 1600,
+      limit: remaining,
+    );
+
+    if (selected.isNotEmpty && mounted) {
+      setState(() => _newImages.addAll(selected.take(remaining)));
+    }
+  }
+
+  Future<void> _deleteExistingImage(int imageId) async {
+    await ref
+        .read(marketplaceServiceProvider)
+        .deleteListingImage(listingId: widget.listing.id, imageId: imageId);
+
+    if (mounted) {
+      setState(
+        () => _existingImages.removeWhere((image) => image.id == imageId),
+      );
+    }
+  }
+
+  Future<void> _setCover(int imageId) async {
+    final updated = await ref
+        .read(marketplaceServiceProvider)
+        .setListingCoverImage(listingId: widget.listing.id, imageId: imageId);
+
+    if (mounted) {
+      setState(() => _existingImages = [...updated.images]);
+    }
   }
 
   Future<void> _pickLocation() async {
@@ -96,6 +140,7 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
             location: _location.text,
             latitude: _coordinates?.latitude,
             longitude: _coordinates?.longitude,
+            newImagePaths: _newImages.map((image) => image.path).toList(),
             isNegotiable: _negotiable,
           );
 
@@ -171,6 +216,114 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
               ),
               const SizedBox(height: 12),
             ],
+            OutlinedButton.icon(
+              onPressed: _existingImages.length + _newImages.length >= 5
+                  ? null
+                  : _pickImages,
+              icon: const Icon(Icons.add_photo_alternate_outlined),
+              label: Text(
+                'Add photos '
+                '(${_existingImages.length + _newImages.length}/5)',
+              ),
+            ),
+            if (_existingImages.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('Existing photos'),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 108,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _existingImages.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final image = _existingImages[index];
+
+                    return SizedBox(
+                      width: 108,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                image.url,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 2,
+                            bottom: 2,
+                            child: IconButton.filled(
+                              tooltip: 'Set as cover',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: image.isCover
+                                  ? null
+                                  : () => _setCover(image.id),
+                              icon: Icon(
+                                image.isCover ? Icons.star : Icons.star_border,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 2,
+                            top: 2,
+                            child: IconButton.filled(
+                              tooltip: 'Delete photo',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => _deleteExistingImage(image.id),
+                              icon: const Icon(Icons.delete_outline, size: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+            if (_newImages.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('New photos'),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 92,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _newImages.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(_newImages[index].path),
+                            width: 92,
+                            height: 92,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          right: 2,
+                          top: 2,
+                          child: IconButton.filled(
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () {
+                              setState(() => _newImages.removeAt(index));
+                            },
+                            icon: const Icon(Icons.close, size: 16),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: _pickLocation,
               icon: const Icon(Icons.map_outlined),

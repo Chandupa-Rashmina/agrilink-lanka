@@ -9,6 +9,8 @@ class ListingResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $this->loadMissing('images');
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -23,6 +25,14 @@ class ListingResource extends JsonResource
             'longitude' => $this->longitude,
             'available_date' => $this->available_date?->toDateString(),
             'image_url' => $this->image_url,
+            'images' => $this->images->map(
+                fn ($image) => [
+                    'id' => $image->id,
+                    'url' => $image->url,
+                    'sort_order' => $image->sort_order,
+                    'is_cover' => $image->sort_order === 0,
+                ]
+            )->values(),
             'status' => $this->status,
             'category' => [
                 'id' => $this->category?->id,

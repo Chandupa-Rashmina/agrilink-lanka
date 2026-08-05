@@ -129,7 +129,7 @@ class MarketplaceService {
     String? location,
     double? latitude,
     double? longitude,
-    String? imagePath,
+    List<String> imagePaths = const [],
   }) async {
     final form = FormData.fromMap({
       'category_id': categoryId,
@@ -143,11 +143,13 @@ class MarketplaceService {
       'latitude': ?latitude,
       'longitude': ?longitude,
       'is_negotiable': isNegotiable ? 1 : 0,
-      if (imagePath != null)
-        'image': await MultipartFile.fromFile(
-          imagePath,
-          filename: imagePath.split('/').last,
-        ),
+      'images': [
+        for (final imagePath in imagePaths)
+          await MultipartFile.fromFile(
+            imagePath,
+            filename: imagePath.split('/').last,
+          ),
+      ],
     });
 
     final response = await _apiClient.dio.post<dynamic>(
@@ -171,22 +173,53 @@ class MarketplaceService {
     String? location,
     double? latitude,
     double? longitude,
+    List<String> newImagePaths = const [],
+  }) async {
+    final form = FormData.fromMap({
+      '_method': 'PATCH',
+      'category_id': categoryId,
+      'title': title.trim(),
+      'description': _nullable(description),
+      'quantity': quantity,
+      'unit': unit.trim(),
+      'price': price,
+      'district': district.trim(),
+      'location': _nullable(location),
+      'latitude': ?latitude,
+      'longitude': ?longitude,
+      'is_negotiable': isNegotiable,
+      'images': [
+        for (final imagePath in newImagePaths)
+          await MultipartFile.fromFile(
+            imagePath,
+            filename: imagePath.split('/').last,
+          ),
+      ],
+    });
+
+    final response = await _apiClient.dio.post<dynamic>(
+      '/listings/$listingId',
+      data: form,
+    );
+
+    return _parseListing(response.data);
+  }
+
+  Future<void> deleteListingImage({
+    required int listingId,
+    required int imageId,
+  }) async {
+    await _apiClient.dio.delete<dynamic>(
+      '/listings/$listingId/images/$imageId',
+    );
+  }
+
+  Future<MarketplaceListing> setListingCoverImage({
+    required int listingId,
+    required int imageId,
   }) async {
     final response = await _apiClient.dio.patch<dynamic>(
-      '/listings/$listingId',
-      data: {
-        'category_id': categoryId,
-        'title': title.trim(),
-        'description': _nullable(description),
-        'quantity': quantity,
-        'unit': unit.trim(),
-        'price': price,
-        'district': district.trim(),
-        'location': _nullable(location),
-        'latitude': ?latitude,
-        'longitude': ?longitude,
-        'is_negotiable': isNegotiable,
-      },
+      '/listings/$listingId/images/$imageId/cover',
     );
 
     return _parseListing(response.data);

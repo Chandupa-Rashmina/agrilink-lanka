@@ -249,16 +249,8 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (listing.imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                listing.imageUrl!,
-                height: 220,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-            ),
+          if (listing.imageUrls.isNotEmpty)
+            _ListingGallery(imageUrls: listing.imageUrls),
           const SizedBox(height: 16),
           Text(listing.title, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
@@ -381,6 +373,67 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
               label: const Text('Send Inquiry'),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ListingGallery extends StatefulWidget {
+  const _ListingGallery({required this.imageUrls});
+
+  final List<String> imageUrls;
+
+  @override
+  State<_ListingGallery> createState() => _ListingGalleryState();
+}
+
+class _ListingGalleryState extends State<_ListingGallery> {
+  int _index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 250,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: PageView.builder(
+              itemCount: widget.imageUrls.length,
+              onPageChanged: (value) => setState(() => _index = value),
+              itemBuilder: (context, index) => Image.network(
+                widget.imageUrls[index],
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const ColoredBox(
+                  color: Color(0xFFE0E0E0),
+                  child: Center(child: Icon(Icons.broken_image_outlined)),
+                ),
+              ),
+            ),
+          ),
+          if (widget.imageUrls.length > 1)
+            Positioned(
+              right: 10,
+              bottom: 10,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  child: Text(
+                    '${_index + 1}/${widget.imageUrls.length}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
