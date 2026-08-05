@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'auth_provider.dart';
+import 'providers/auth_providers.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _email;
@@ -20,7 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final user = context.read<AuthProvider>().user;
+    final user = ref.read(authControllerProvider).valueOrNull?.user;
     _name = TextEditingController(text: user?.name);
     _email = TextEditingController(text: user?.email);
     _phone = TextEditingController(text: user?.phone);
@@ -41,12 +41,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    final saved = await context.read<AuthProvider>().updateProfile(
-      name: _name.text.trim(),
-      email: _email.text.trim(),
-      phone: _phone.text.trim(),
-      district: _district.text.trim(),
-    );
+    final saved = await ref
+        .read(authControllerProvider.notifier)
+        .updateProfile(
+          name: _name.text.trim(),
+          email: _email.text.trim(),
+          phone: _phone.text.trim(),
+          district: _district.text.trim(),
+        );
 
     if (saved && mounted) {
       ScaffoldMessenger.of(
@@ -57,7 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final auth = ref.watch(authControllerProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'auth_provider.dart';
+import 'providers/auth_providers.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final auth = context.read<AuthProvider>();
+    final auth = ref.read(authControllerProvider.notifier);
 
     if (_registerMode) {
       await auth.register(
@@ -52,7 +52,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final authAsync = ref.watch(authControllerProvider);
+    final auth = authAsync.valueOrNull;
+    final isLoading = authAsync.isLoading;
+    final errorMessage = auth?.message;
 
     return Scaffold(
       body: SafeArea(
@@ -111,10 +114,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: true,
                       minimumLength: _registerMode ? 8 : 1,
                     ),
-                    if (auth.errorMessage != null) ...[
+                    if (errorMessage != null) ...[
                       const SizedBox(height: 12),
                       Text(
-                        auth.errorMessage!,
+                        errorMessage,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),
@@ -122,8 +125,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                     const SizedBox(height: 20),
                     FilledButton(
-                      onPressed: auth.isLoading ? null : _submit,
-                      child: auth.isLoading
+                      onPressed: isLoading ? null : _submit,
+                      child: isLoading
                           ? const SizedBox.square(
                               dimension: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
@@ -131,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           : Text(_registerMode ? 'Create account' : 'Sign in'),
                     ),
                     TextButton(
-                      onPressed: auth.isLoading
+                      onPressed: isLoading
                           ? null
                           : () {
                               setState(() => _registerMode = !_registerMode);

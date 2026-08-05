@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart' as provider;
 
-import '../../../auth/presentation/auth_provider.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/partner_provider.dart';
 import 'partner_create_screen.dart';
 import 'partner_detail_screen.dart';
@@ -33,7 +32,7 @@ class PartnerListScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Logout',
             onPressed: () {
-              context.read<AuthProvider>().logout();
+              ref.read(authControllerProvider.notifier).logout();
             },
             icon: const Icon(Icons.logout),
           ),

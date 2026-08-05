@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart' as provider;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../auth/presentation/auth_provider.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../auth/presentation/profile_screen.dart';
 import 'create_listing_screen.dart';
 import 'favorites_screen.dart';
@@ -9,14 +9,14 @@ import 'inquiries_screen.dart';
 import 'marketplace_feed_screen.dart';
 import 'my_listings_screen.dart';
 
-class MarketplaceShell extends StatefulWidget {
+class MarketplaceShell extends ConsumerStatefulWidget {
   const MarketplaceShell({super.key});
 
   @override
-  State<MarketplaceShell> createState() => _MarketplaceShellState();
+  ConsumerState<MarketplaceShell> createState() => _MarketplaceShellState();
 }
 
-class _MarketplaceShellState extends State<MarketplaceShell> {
+class _MarketplaceShellState extends ConsumerState<MarketplaceShell> {
   int _index = 0;
 
   static const _titles = [
@@ -52,10 +52,11 @@ class _MarketplaceShellState extends State<MarketplaceShell> {
                   MaterialPageRoute(builder: (_) => const ProfileScreen()),
                 );
               } else if (value == 'logout') {
-                context.read<AuthProvider>().logout();
+                ref.read(authControllerProvider.notifier).logout();
               }
             },
             itemBuilder: (_) => const [
+              PopupMenuItem(value: 'profile', child: Text('Profile')),
               PopupMenuItem(value: 'logout', child: Text('Logout')),
             ],
           ),
