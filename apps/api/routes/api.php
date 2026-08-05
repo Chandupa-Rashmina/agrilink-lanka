@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('partners', PartnerController::class);
 
     Route::get('/marketplace-dashboard', MarketplaceDashboardController::class);
+    Route::get('/listings/{listing}/contact', [ListingController::class, 'contact']);
     Route::get('/my-listings', [ListingController::class, 'mine']);
     Route::post('/listings', [ListingController::class, 'store']);
     Route::match(['put', 'patch'], '/listings/{listing}', [ListingController::class, 'update']);

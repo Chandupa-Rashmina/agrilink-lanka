@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ListingResource;
 use App\Models\Listing;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -166,6 +167,28 @@ class ListingController extends Controller
         );
     }
 
+    public function contact(Request $request, Listing $listing): JsonResponse
+    {
+        abort_unless($listing->status === 'active', 404);
+        abort_if(
+            $listing->user_id === $request->user()->id,
+            422,
+            'This is your own listing.'
+        );
+
+        $listing->loadMissing('seller:id,name,email,phone,district');
+
+        return response()->json([
+            'data' => [
+                'seller_id' => $listing->seller->id,
+                'name' => $listing->seller->name,
+                'phone' => $listing->seller->phone,
+                'email' => $listing->seller->email,
+                'district' => $listing->seller->district,
+            ],
+        ]);
+    }
+
     public function destroy(Request $request, Listing $listing): Response
     {
         $this->authorizeOwner($request, $listing);
@@ -259,6 +282,8 @@ class ListingController extends Controller
                 'max:100',
             ],
             'location' => ['nullable', 'string', 'max:180'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'available_date' => ['nullable', 'date'],
             'image' => ['nullable', 'image', 'max:5120'],
         ]);

@@ -2,8 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../providers/marketplace_providers.dart';
+import 'map_picker_screen.dart';
 
 class CreateListingScreen extends ConsumerStatefulWidget {
   const CreateListingScreen({this.onCreated, super.key});
@@ -29,6 +31,7 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
   bool _negotiable = false;
   bool _saving = false;
   XFile? _image;
+  LatLng? _coordinates;
 
   @override
   void dispose() {
@@ -54,6 +57,21 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
     }
   }
 
+  Future<void> _pickLocation() async {
+    final selected = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(
+        builder: (_) => MapPickerScreen(
+          initialLatitude: _coordinates?.latitude,
+          initialLongitude: _coordinates?.longitude,
+        ),
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() => _coordinates = selected);
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate() || _categoryId == null || _saving) {
       return;
@@ -73,6 +91,8 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
             price: double.parse(_price.text),
             district: _district.text,
             location: _location.text,
+            latitude: _coordinates?.latitude,
+            longitude: _coordinates?.longitude,
             isNegotiable: _negotiable,
             imagePath: _image?.path,
           );
@@ -93,6 +113,7 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
         _categoryId = null;
         _negotiable = false;
         _image = null;
+        _coordinates = null;
       });
 
       widget.onCreated?.call();
@@ -211,6 +232,16 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
             value: _negotiable,
             onChanged: (value) => setState(() => _negotiable = value),
           ),
+          OutlinedButton.icon(
+            onPressed: _pickLocation,
+            icon: const Icon(Icons.map_outlined),
+            label: Text(
+              _coordinates == null
+                  ? 'Choose pickup/farm location'
+                  : 'Map location selected',
+            ),
+          ),
+          const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _pickImage,
             icon: const Icon(Icons.photo_library_outlined),

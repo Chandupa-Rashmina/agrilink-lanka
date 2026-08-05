@@ -5,6 +5,7 @@ import '../models/category.dart';
 import '../models/inquiry.dart';
 import '../models/listing.dart';
 import '../models/marketplace_dashboard.dart';
+import '../models/seller_contact.dart';
 
 class MarketplaceService {
   const MarketplaceService(this._apiClient);
@@ -126,6 +127,8 @@ class MarketplaceService {
     required bool isNegotiable,
     String? description,
     String? location,
+    double? latitude,
+    double? longitude,
     String? imagePath,
   }) async {
     final form = FormData.fromMap({
@@ -137,6 +140,8 @@ class MarketplaceService {
       'price': price,
       'district': district.trim(),
       'location': _nullable(location),
+      'latitude': ?latitude,
+      'longitude': ?longitude,
       'is_negotiable': isNegotiable ? 1 : 0,
       if (imagePath != null)
         'image': await MultipartFile.fromFile(
@@ -164,6 +169,8 @@ class MarketplaceService {
     required bool isNegotiable,
     String? description,
     String? location,
+    double? latitude,
+    double? longitude,
   }) async {
     final response = await _apiClient.dio.patch<dynamic>(
       '/listings/$listingId',
@@ -176,11 +183,28 @@ class MarketplaceService {
         'price': price,
         'district': district.trim(),
         'location': _nullable(location),
+        'latitude': ?latitude,
+        'longitude': ?longitude,
         'is_negotiable': isNegotiable,
       },
     );
 
     return _parseListing(response.data);
+  }
+
+  Future<SellerContact> fetchSellerContact(int listingId) async {
+    final response = await _apiClient.dio.get<dynamic>(
+      '/listings/$listingId/contact',
+    );
+    final root = response.data;
+
+    if (root is! Map || root['data'] is! Map) {
+      throw const FormatException('Invalid seller contact response.');
+    }
+
+    return SellerContact.fromJson(
+      Map<String, dynamic>.from(root['data'] as Map),
+    );
   }
 
   Future<void> sendInquiry({

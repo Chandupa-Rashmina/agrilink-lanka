@@ -14,8 +14,11 @@ class MarketplaceListing {
     required this.sellerName,
     this.description,
     this.location,
-    this.availableDate,
+    this.latitude,
+    this.longitude,
     this.imageUrl,
+    this.sellerDistrict,
+    this.createdAt,
   });
 
   factory MarketplaceListing.fromJson(Map<String, dynamic> json) {
@@ -26,23 +29,44 @@ class MarketplaceListing {
       json['seller'] as Map? ?? const {},
     );
 
+    double number(dynamic value) {
+      if (value is num) {
+        return value.toDouble();
+      }
+
+      return double.tryParse(value?.toString() ?? '') ?? 0;
+    }
+
+    double? nullableNumber(dynamic value) {
+      if (value == null) {
+        return null;
+      }
+
+      return value is num
+          ? value.toDouble()
+          : double.tryParse(value.toString());
+    }
+
     return MarketplaceListing(
-      id: json['id'] as int,
+      id: (json['id'] as num).toInt(),
       title: json['title'] as String? ?? '',
       description: json['description'] as String?,
-      quantity: _asDouble(json['quantity']),
+      quantity: number(json['quantity']),
       unit: json['unit'] as String? ?? '',
-      price: _asDouble(json['price']),
+      price: number(json['price']),
       isNegotiable: json['is_negotiable'] as bool? ?? false,
       district: json['district'] as String? ?? '',
       location: json['location'] as String?,
-      availableDate: json['available_date'] as String?,
+      latitude: nullableNumber(json['latitude']),
+      longitude: nullableNumber(json['longitude']),
       imageUrl: json['image_url'] as String?,
       status: json['status'] as String? ?? 'active',
-      categoryId: category['id'] as int? ?? 0,
+      categoryId: (category['id'] as num?)?.toInt() ?? 0,
       categoryName: category['name'] as String? ?? 'Uncategorized',
-      sellerId: seller['id'] as int? ?? 0,
+      sellerId: (seller['id'] as num?)?.toInt() ?? 0,
       sellerName: seller['name'] as String? ?? 'Unknown seller',
+      sellerDistrict: seller['district'] as String?,
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
     );
   }
 
@@ -55,40 +79,16 @@ class MarketplaceListing {
   final bool isNegotiable;
   final String district;
   final String? location;
-  final String? availableDate;
+  final double? latitude;
+  final double? longitude;
   final String? imageUrl;
   final String status;
   final int categoryId;
   final String categoryName;
   final int sellerId;
   final String sellerName;
+  final String? sellerDistrict;
+  final DateTime? createdAt;
 
-  MarketplaceListing copyWith({String? status}) {
-    return MarketplaceListing(
-      id: id,
-      title: title,
-      description: description,
-      quantity: quantity,
-      unit: unit,
-      price: price,
-      isNegotiable: isNegotiable,
-      district: district,
-      location: location,
-      availableDate: availableDate,
-      imageUrl: imageUrl,
-      status: status ?? this.status,
-      categoryId: categoryId,
-      categoryName: categoryName,
-      sellerId: sellerId,
-      sellerName: sellerName,
-    );
-  }
-
-  static double _asDouble(dynamic value) {
-    if (value is num) {
-      return value.toDouble();
-    }
-
-    return double.tryParse(value?.toString() ?? '') ?? 0;
-  }
+  bool get hasCoordinates => latitude != null && longitude != null;
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../data/models/listing.dart';
 import '../providers/marketplace_providers.dart';
+import 'map_picker_screen.dart';
 
 class EditListingScreen extends ConsumerStatefulWidget {
   const EditListingScreen({required this.listing, super.key});
@@ -25,6 +27,7 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
   late int _categoryId;
   late bool _negotiable;
   bool _saving = false;
+  LatLng? _coordinates;
 
   @override
   void initState() {
@@ -39,6 +42,9 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
     _location = TextEditingController(text: listing.location);
     _categoryId = listing.categoryId;
     _negotiable = listing.isNegotiable;
+    _coordinates = listing.hasCoordinates
+        ? LatLng(listing.latitude!, listing.longitude!)
+        : null;
   }
 
   @override
@@ -51,6 +57,21 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
     _district.dispose();
     _location.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickLocation() async {
+    final selected = await Navigator.of(context).push<LatLng>(
+      MaterialPageRoute(
+        builder: (_) => MapPickerScreen(
+          initialLatitude: _coordinates?.latitude,
+          initialLongitude: _coordinates?.longitude,
+        ),
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() => _coordinates = selected);
+    }
   }
 
   Future<void> _save() async {
@@ -73,6 +94,8 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
             price: double.parse(_price.text),
             district: _district.text,
             location: _location.text,
+            latitude: _coordinates?.latitude,
+            longitude: _coordinates?.longitude,
             isNegotiable: _negotiable,
           );
 
@@ -148,6 +171,16 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
               ),
               const SizedBox(height: 12),
             ],
+            OutlinedButton.icon(
+              onPressed: _pickLocation,
+              icon: const Icon(Icons.map_outlined),
+              label: Text(
+                _coordinates == null
+                    ? 'Choose pickup/farm location'
+                    : 'Change map location',
+              ),
+            ),
+            const SizedBox(height: 12),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Negotiable'),

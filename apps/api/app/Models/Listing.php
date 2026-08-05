@@ -22,6 +22,8 @@ class Listing extends Model
         'is_negotiable',
         'district',
         'location',
+        'latitude',
+        'longitude',
         'available_date',
         'image_path',
         'status',
@@ -34,6 +36,8 @@ class Listing extends Model
             'price' => 'decimal:2',
             'is_negotiable' => 'boolean',
             'available_date' => 'date',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
         ];
     }
 
