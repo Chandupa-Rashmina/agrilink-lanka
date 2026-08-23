@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../data/models/listing.dart';
+import '../marketplace_error_message.dart';
 import '../providers/marketplace_providers.dart';
 import 'map_picker_screen.dart';
 
@@ -149,6 +150,19 @@ class _EditListingScreenState extends ConsumerState<EditListingScreen> {
 
       if (mounted) {
         Navigator.of(context).pop();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              marketplaceErrorMessage(
+                error,
+                fallback: 'Unable to save listing. Check the connection.',
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) {

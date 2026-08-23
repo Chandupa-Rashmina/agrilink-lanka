@@ -1,11 +1,11 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../marketplace_error_message.dart';
 import '../providers/marketplace_providers.dart';
 import 'map_picker_screen.dart';
 
@@ -130,16 +130,18 @@ class _CreateListingScreenState extends ConsumerState<CreateListingScreen> {
           context,
         ).showSnackBar(const SnackBar(content: Text('Listing published.')));
       }
-    } on DioException catch (error) {
+    } catch (error) {
       if (mounted) {
-        final data = error.response?.data;
-        final message = data is Map && data['message'] is String
-            ? data['message'] as String
-            : 'Unable to publish listing.';
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              marketplaceErrorMessage(
+                error,
+                fallback: 'Unable to publish listing. Check the connection.',
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) {

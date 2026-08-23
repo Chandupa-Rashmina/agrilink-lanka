@@ -150,7 +150,7 @@ class MarketplaceService {
             filename: imagePath.split('/').last,
           ),
       ],
-    });
+    }, ListFormat.multiCompatible);
 
     final response = await _apiClient.dio.post<dynamic>(
       '/listings',
@@ -187,7 +187,7 @@ class MarketplaceService {
       'location': _nullable(location),
       'latitude': ?latitude,
       'longitude': ?longitude,
-      'is_negotiable': isNegotiable,
+      'is_negotiable': isNegotiable ? 1 : 0,
       'images': [
         for (final imagePath in newImagePaths)
           await MultipartFile.fromFile(
@@ -195,7 +195,7 @@ class MarketplaceService {
             filename: imagePath.split('/').last,
           ),
       ],
-    });
+    }, ListFormat.multiCompatible);
 
     final response = await _apiClient.dio.post<dynamic>(
       '/listings/$listingId',

@@ -104,6 +104,72 @@ class MarketplaceMultipleImagesTest extends TestCase
             ->assertJsonValidationErrors('images');
     }
 
+    public function test_owner_can_update_fields_and_add_an_image_with_multipart_method_spoofing(): void
+    {
+        Storage::fake('public');
+
+        $seller = User::factory()->create();
+        $listing = $this->listing($seller);
+        $existing = $listing->images()->create([
+            'path' => $this->fakePng('existing.png')
+                ->store('listings', 'public'),
+            'sort_order' => 0,
+        ]);
+
+        $this->actingAs($seller, 'sanctum')
+            ->post("/api/listings/{$listing->id}", [
+                '_method' => 'PATCH',
+                'category_id' => $listing->category_id,
+                'title' => 'Updated produce',
+                'description' => 'Updated description',
+                'quantity' => '15.5',
+                'unit' => 'crates',
+                'price' => '275.50',
+                'is_negotiable' => '0',
+                'district' => 'Matale',
+                'location' => 'Dambulla',
+                'latitude' => '7.8742',
+                'longitude' => '80.7718',
+                'images' => [$this->fakePng('added.png')],
+            ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Updated produce')
+            ->assertJsonPath('data.is_negotiable', false)
+            ->assertJsonCount(2, 'data.images');
+
+        $this->assertDatabaseHas('listings', [
+            'id' => $listing->id,
+            'title' => 'Updated produce',
+            'location' => 'Dambulla',
+            'is_negotiable' => false,
+        ]);
+        $this->assertDatabaseHas('listing_images', [
+            'id' => $existing->id,
+            'listing_id' => $listing->id,
+        ]);
+    }
+
+    public function test_invalid_multipart_update_returns_validation_errors_without_persisting(): void
+    {
+        $seller = User::factory()->create();
+        $listing = $this->listing($seller);
+
+        $this->actingAs($seller, 'sanctum')
+            ->post("/api/listings/{$listing->id}", [
+                '_method' => 'PATCH',
+                'title' => '',
+                'quantity' => '0',
+            ], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['title', 'quantity']);
+
+        $this->assertDatabaseHas('listings', [
+            'id' => $listing->id,
+            'title' => 'Produce',
+            'quantity' => 10,
+        ]);
+    }
+
     private function fakePng(string $name): UploadedFile
     {
         $png = base64_decode(
